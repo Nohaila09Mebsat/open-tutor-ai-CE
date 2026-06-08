@@ -1,1 +1,1 @@
-"""AI boundary: LLMs, providers, retrieval, memory, tools, and model catalog."""
+"""AI boundary: LLMs, providers, RAG, media, memory, tools, and model catalog."""

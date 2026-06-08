@@ -9,7 +9,7 @@ from config import settings
 from data.database import get_db
 from data.models import User
 from content.files.service import FilesService
-from access.users.service import AccessService
+from accounts.users.service import AccountService
 from learning.supports.service import SupportsService
 from governance.self_regulation.service import SelfRegulationService
 
@@ -42,7 +42,7 @@ async def get_current_user(
             detail="Invalid authentication credentials",
         )
 
-    user = AccessService(db).get_user(user_id)
+    user = AccountService(db).get_user(user_id)
     if user is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found"
@@ -69,8 +69,8 @@ def decode_jwt_token(token: str) -> dict | None:
 # ── Service factories ─────────────────────────────────────────────────────────
 
 
-def get_access_service(db: Session = Depends(get_db)) -> AccessService:
-    return AccessService(db)
+def get_account_service(db: Session = Depends(get_db)) -> AccountService:
+    return AccountService(db)
 
 
 def get_supports_service(db: Session = Depends(get_db)) -> SupportsService:

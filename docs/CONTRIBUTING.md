@@ -70,11 +70,12 @@ We welcome pull requests. Before submitting one, please:
 
 The project uses a **root-driven architecture** since v1.0. Keep this layout in mind when adding new files:
 
-**Backend (Python — project root)**
+**Python application — project root**
 
-- Each domain is a standalone package at the root: `identity/`, `chats/`, `configs/`, `models/`, `providers/`, `files/`, `supports/`, `self_regulation/`
-- Each domain follows the pattern: `repository.py` → `service.py` → `gateway/http/routers/<domain>.py`
-- No runtime imports from `open_webui` — use `open-webui` repo as read-only reference only
+- Use the approved root packages: `accounts/`, `learning/`, `ai/`, `content/`, `governance/`, `system/`, `gateway/`, `data/`, `common/`, and `config/`
+- Domain code follows the pattern: `repository.py` → `service.py` → `gateway/http/routers/<public_namespace>.py`
+- Keep RAG knowledge bases under `ai/retrieval/knowledge/`, not under `content/`
+- Keep AI audio/image capabilities under `ai/media/`, not as a root `media/` package
 - New routes must be registered in `gateway/http/app.py` and covered by `tests/test_contract_coverage.py`
 
 **Frontend (SvelteKit — `ui/` subdirectory)**
@@ -85,7 +86,7 @@ The project uses a **root-driven architecture** since v1.0. Keep this layout in 
 - ✅ API client functions go inside `ui/src/lib/apis/<domain>/index.ts`
 - ❌ Avoid placing components outside their designated folders
 
-> **Tip:** Every new `fetch()` call in `ui/src/lib/apis/` must have a matching backend endpoint — the contract test will catch the gap in CI.
+> **Tip:** Every new `fetch()` call in `ui/src/lib/apis/` must have a matching API endpoint — the contract test will catch the gap in CI.
 
 ### 📚 Documentation & Tutorials
 

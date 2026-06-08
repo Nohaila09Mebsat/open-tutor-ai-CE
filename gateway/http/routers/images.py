@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session
 from data.database import get_db
 from data.models import User
 from gateway.http.dependencies import get_current_user
-from media.images import ImagesService
+from ai.media.images import ImagesService
 
 router = APIRouter(prefix="/images", tags=["images"])
 

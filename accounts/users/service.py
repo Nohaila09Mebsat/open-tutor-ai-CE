@@ -1,4 +1,4 @@
-"""Access service for users and authentication."""
+"""Account service for users and authentication."""
 
 import uuid
 from typing import List, Optional
@@ -8,13 +8,13 @@ from sqlalchemy.orm import Session
 
 from common.exceptions import NotFoundError
 from data.models import User
-from access.users.repository import UserRepository
+from accounts.users.repository import UserRepository
 
 _pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
-class AccessService:
-    """Service for user access operations."""
+class AccountService:
+    """Service for account and user operations."""
 
     def __init__(self, session: Session):
         self.repo = UserRepository(session, User)

@@ -89,20 +89,24 @@ open-tutor-ai-CE/
 ├── main.py                    ← Python entry point (uvicorn)
 │
 ├── ── Application Domains ───────────────────────────────────────────────
-├── access/                    ← Auth, users, roles, permissions
+├── accounts/                  ← Auth, users, roles, permissions
 ├── learning/                  ← Learners, teachers, classrooms, courses
 │   ├── sessions/              ← Chat sessions, tags, sharing, search
 │   └── supports/              ← Personalized tutoring supports
-├── ai/                        ← LLM, providers, retrieval, memory, tools
+├── ai/                        ← LLM, providers, RAG, media, memory, tools
 │   ├── llm/                   ← LLM schemas, service, transports
 │   ├── model_catalog/         ← Model overlays/catalog
 │   ├── providers/             ← OpenAI-compatible + Ollama providers
-│   └── retrieval/             ← RAG pipeline
-├── content/                   ← Files, uploads, resources, knowledge bases
+│   ├── retrieval/             ← RAG pipeline and knowledge bases
+│   └── media/                 ← Audio (TTS/STT) + image generation
+├── content/                   ← Files, uploads, learning resources
+│   ├── files/                 ← User-owned files and extracted content
+│   └── resources/             ← Learning resources not tied to RAG
 ├── governance/                ← HITL governance and LLM response evaluation
 │   └── self_regulation/       ← Self-regulation feedback domain
-├── foundation/                ← App-level configs and platform services
-├── media/                     ← Audio (TTS/STT) + image generation
+├── system/                    ← App-level configs and bootstrap services
+│   ├── configs/               ← Runtime app configuration store
+│   └── app/                   ← App info/bootstrap services
 │
 ├── ── Gateway & Infrastructure ──────────────────────────────────────────
 ├── gateway/                   ← Transport layer
@@ -136,6 +140,9 @@ open-tutor-ai-CE/
 
 > Full structure with annotations: [MIGRATION.md](MIGRATION.md)
 
+OpenWebUI and Hermes are used as design references only. OpenTutorAI keeps its own
+domain names and has no runtime dependency on either project.
+
 ---
 
 ## How to Install 🚀
@@ -156,7 +163,7 @@ Use this path when you want hot-reload for active development or contribution.
      cd open-tutor-ai-CE
      ```
 
-2. **Backend Setup**
+2. **Python Application Setup**
    - Create and activate a Python environment (conda or venv):
      ```bash
      # conda
@@ -176,7 +183,7 @@ Use this path when you want hot-reload for active development or contribution.
      # The defaults in .env.example work for local dev (DEBUG=true).
      # No changes needed unless you use an external API or want production mode.
      ```
-   - Start the backend with hot-reload (API available at **http://localhost:8080**):
+   - Start the Python API with hot-reload (available at **http://localhost:8080**):
      ```bash
      uvicorn main:app --reload --port 8080
      ```
@@ -214,7 +221,7 @@ Use this path when you want hot-reload for active development or contribution.
 
 ### 🐳 Docker & Docker Compose Setup (Recommended)
 
-For a hassle-free setup without installing Python or Node.js, use Docker. A single container serves both the backend and the built frontend.
+For a hassle-free setup without installing Python or Node.js, use Docker. A single container serves both the Python API and the built frontend.
 
 #### Prerequisites
 1. **Docker + Docker Compose** from [docker.com](https://www.docker.com/get-started)
@@ -248,7 +255,7 @@ docker compose --env-file .env -f devops/docker/docker-compose.yaml up --build
 ```
 
 This starts:
-- `open-tutorai` — backend + frontend at **http://localhost:8080**
+- `open-tutorai` — Python API + frontend at **http://localhost:8080**
 - `ollama` — local model server at **http://localhost:11434**
 
 **Without Ollama (use an external OpenAI-compatible API):**
@@ -275,7 +282,7 @@ Verify the model is installed:
 docker exec -it ollama ollama list
 ```
 
-If the backend was already running before the model was pulled, restart it:
+If the Python API was already running before the model was pulled, restart it:
 ```bash
 docker compose --env-file .env -f devops/docker/docker-compose.yaml restart open-tutorai
 ```

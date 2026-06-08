@@ -2,8 +2,9 @@
 
 ## Project Overview
 
-Open TutorAI CE is a standalone educational AI platform. The backend is a FastAPI
-root-driven application following the Hermes pattern. The frontend is SvelteKit in `ui/`.
+Open TutorAI CE is a standalone educational AI platform. The Python application is
+a FastAPI root-driven application following the Hermes pattern. The frontend is
+SvelteKit in `ui/`.
 
 **Rule #1 — never import from `open_webui` at runtime.** Use the open-webui repo
 (`/Volumes/Work/Develop/Projects/Team_RD/opentutorai/open-webui`) as a read-only
@@ -14,13 +15,13 @@ reference only.
 ## Running Commands
 
 ```bash
-# Backend tests (fast — SQLite in-memory)
+# Python application tests (fast — SQLite in-memory)
 ~/.pyenv/versions/tutorai-env/bin/pytest -q
 
 # Run a specific test file
 ~/.pyenv/versions/tutorai-env/bin/pytest tests/test_chats.py -v
 
-# Backend format check
+# Python application format check
 ~/.pyenv/versions/tutorai-env/bin/black . --check --exclude ".venv/|/venv/|ui/"
 
 # Apply Black formatting
@@ -35,10 +36,16 @@ cd ui && npm run test:frontend
 
 ---
 
-## Architecture — Backend
+## Architecture — Python Application
 
 ```
 main.py                    ← uvicorn entry point
+accounts/                  ← auth, users, roles, permissions
+learning/                  ← learners, teachers, classrooms, courses, sessions, supports
+ai/                        ← llm, providers, retrieval/RAG, media, memory, tools
+content/                   ← files and learning resources not tied to RAG
+governance/                ← HITL evaluation and policy domains
+system/                    ← app-level configs and app info/bootstrap services
 gateway/
   http/
     app.py                 ← FastAPI app factory, lifespan, CORS, router registration
@@ -50,10 +57,11 @@ data/
   database.py              ← SQLAlchemy engine + get_db() session factory
   models/                  ← ORM models (one file per entity)
   repositories/base.py     ← Generic CRUD base
-<domain>/
-  repository.py            ← Data access (SQLAlchemy only, no business logic)
-  service.py               ← Business logic (no ORM imports, only repository calls)
 ```
+
+OpenWebUI and Hermes are read-only references for UI contract and implementation
+techniques. They must not be imported at runtime and their package names should not
+drive OpenTutorAI's internal domain names.
 
 ### Domain pattern (mandatory for every domain)
 
@@ -83,12 +91,13 @@ def get_chat(id: str, user=Depends(require_user), svc=Depends(get_chats_service)
 
 ### Adding a new domain
 
-1. Create `<domain>/repository.py`, `<domain>/service.py`, `<domain>/__init__.py`
-2. Add ORM model in `data/models/<domain>.py`, register in `data/models/__init__.py`
-3. Create `gateway/http/routers/<domain>.py`
-4. Register router in `gateway/http/app.py`
-5. Add tests in `tests/test_<domain>.py`
-6. Remove the domain from `_SCANNED_PATH_EXCLUSIONS` in `tests/test_contract_coverage.py`
+1. Choose the correct boundary first: `accounts`, `learning`, `ai`, `content`, `governance`, or `system`
+2. Create `<boundary>/<domain>/repository.py`, `<boundary>/<domain>/service.py`, `<boundary>/<domain>/__init__.py`
+3. Add ORM model in `data/models/<domain>.py`, register in `data/models/__init__.py`
+4. Create `gateway/http/routers/<public_namespace>.py`
+5. Register router in `gateway/http/app.py`
+6. Add tests in `tests/test_<domain>.py`
+7. Remove the route from `_SCANNED_PATH_EXCLUSIONS` in `tests/test_contract_coverage.py`
 
 ---
 
@@ -101,7 +110,7 @@ ui/src/routes/                      ← File-based routing
 ui/src/lib/i18n/locales/            ← Translations (AR / FR / EN)
 ```
 
-**Every `fetch()` call in `ui/src/lib/apis/` must have a matching backend endpoint.**
+**Every `fetch()` call in `ui/src/lib/apis/` must have a matching API endpoint.**
 The contract test (`tests/test_contract_coverage.py`) enforces this in CI.
 
 ---
@@ -114,7 +123,7 @@ The contract test (`tests/test_contract_coverage.py`) enforces this in CI.
 | Black 24.8.0 | Formatter pinned — run before committing |
 | No ORM in routers | Routers call services only |
 | No business logic in repositories | Pure data access |
-| Contract test | Every UI `fetch()` needs a backend route |
+| Contract test | Every UI `fetch()` needs an API route |
 | Auth | JWT via `decode_jwt_token` in `gateway/http/dependencies.py` |
 | DB | Sync SQLAlchemy + `get_db()` — no async ORM |
 | Secrets | Never commit `.env`, never hardcode keys |
@@ -138,7 +147,7 @@ The contract test (`tests/test_contract_coverage.py`) enforces this in CI.
 
 | File | Trigger | Jobs |
 |------|---------|------|
-| `ci-backend.yaml` | push/PR → main, dev | `lint` (Black) → `test` (pytest) |
+| `ci-backend.yaml` | push/PR → main, dev | Python app `lint` (Black) → `test` (pytest) |
 | `ci-frontend.yaml` | push/PR → main, dev | `build` (format+i18n+build) + `test` (vitest) |
 | `build-release.yml` | push tag `v*` | GitHub release from CHANGELOG |
 
@@ -152,14 +161,14 @@ The contract test (`tests/test_contract_coverage.py`) enforces this in CI.
 devops/
   docker/               ← Dockerfiles + Docker Compose overlays
   scripts/
-    dev.sh              ← Local backend hot-reload (loads .env, uvicorn --reload)
+    dev.sh              ← Local Python API hot-reload (loads .env, uvicorn --reload)
     run.sh              ← Build + run single Docker container
     run-compose.sh      ← Full Compose stack with GPU/API flags
     run-ollama-docker.sh← Start Ollama in Docker
 ```
 
 ```bash
-# Local dev (backend)
+# Local dev (Python API)
 ./devops/scripts/dev.sh
 
 # Docker Compose (full stack)

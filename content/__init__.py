@@ -1,1 +1,1 @@
-"""Content boundary: files, knowledge bases, and learning resources."""
+"""Content boundary: files and learning resources."""

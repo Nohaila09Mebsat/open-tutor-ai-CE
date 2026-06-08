@@ -1,4 +1,4 @@
-"""User repository for the access domain."""
+"""User repository for the accounts domain."""
 
 from typing import Any, Dict, List, Optional
 from sqlalchemy.orm import Session

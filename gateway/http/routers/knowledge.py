@@ -8,7 +8,7 @@ from common.exceptions import NotFoundError
 from data.database import get_db
 from data.models import User
 from gateway.http.dependencies import get_current_user
-from content.knowledge.service import KnowledgeService
+from ai.retrieval.knowledge.service import KnowledgeService
 
 router = APIRouter(prefix="/knowledge", tags=["knowledge"])
 

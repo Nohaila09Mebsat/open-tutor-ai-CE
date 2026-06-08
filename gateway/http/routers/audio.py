@@ -13,7 +13,7 @@ from sqlalchemy.orm import Session
 from data.database import get_db
 from data.models import User
 from gateway.http.dependencies import get_current_user
-from media.audio import AudioService
+from ai.media.audio import AudioService
 
 router = APIRouter(prefix="/audio", tags=["audio"])
 

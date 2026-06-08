@@ -1,1 +1,1 @@
-"""Retrieval domain for RAG config, file processing, and vector queries."""
+"""Retrieval domain for RAG config, knowledge bases, and vector queries."""

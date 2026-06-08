@@ -2,7 +2,7 @@
 
 ## Overview
 
-OpenTutorAI has been restructured from a nested `backend/open_tutorai/gateway/` hierarchy with OpenWebUI dependencies to a **root-driven, domain-based architecture** following patterns from Hermes.
+OpenTutorAI has been restructured from a nested `backend/open_tutorai/gateway/` hierarchy with OpenWebUI dependencies to a **root-driven, domain-based architecture** following patterns from Hermes. OpenWebUI and Hermes remain references for UI contract and implementation techniques; they are not runtime dependencies and their package names are not used as internal domains.
 
 ## Key Changes
 
@@ -74,8 +74,8 @@ open-tutor-ai-CE/
 │   └── repositories/
 │       └── base.py                ← Generic CRUD repository
 │
-├── access/                        ← Auth, users, roles, permissions
-│   ├── users/                     ← User repository + AccessService
+├── accounts/                      ← Auth, users, roles, permissions
+│   ├── users/                     ← User repository + AccountService
 │   ├── auth/                      ← Reserved for auth flows
 │   ├── roles/                     ← Reserved for role policies
 │   └── permissions/               ← Reserved for permission policies
@@ -91,18 +91,18 @@ open-tutor-ai-CE/
 │   ├── model_catalog/             ← Model overlays/catalog
 │   ├── providers/                 ← Provider registry, config, proxy, adapters
 │   ├── retrieval/                 ← RAG pipeline
+│   │   └── knowledge/             ← Knowledge bases for RAG
+│   ├── media/                     ← Audio (TTS/STT) + image generation
 │   ├── memory/                    ← Reserved for future agent memory
 │   └── tools/                     ← Reserved for future agent tools
-├── content/                       ← Files, resources, knowledge bases
+├── content/                       ← Files and learning resources
 │   ├── files/                     ← File upload & ownership
-│   ├── knowledge/                 ← Knowledge base
 │   └── resources/                 ← Reserved learning resources
 ├── governance/                    ← Governance and HITL evaluation
 │   └── self_regulation/           ← LLM response evaluation feedback
-├── foundation/                    ← App-level services
+├── system/                        ← App-level services
 │   ├── configs/                   ← App config KV (AppConfig)
-│   └── app/                       ← Reserved app metadata/services
-├── media/                         ← Domain: audio (TTS/STT) + images
+│   └── app/                       ← Reserved app info/bootstrap services
 │
 ├── tests/                         ← Pytest suite (one file per domain)
 │
@@ -124,15 +124,15 @@ open-tutor-ai-CE/
 │
 ├── devops/
 │   ├── docker/                    ← Dockerfiles + Docker Compose overlays
-│   │   ├── Dockerfile.backend     ← Multi-stage: Node build → Python serve
+│   │   ├── Dockerfile.backend     ← Multi-stage: Node build → Python API serve
 │   │   ├── Dockerfile.frontend
-│   │   ├── docker-compose.yaml    ← Base stack (backend + Ollama)
+│   │   ├── docker-compose.yaml    ← Base stack (Python API + Ollama)
 │   │   ├── docker-compose.gpu.yaml
 │   │   ├── docker-compose.amdgpu.yaml
 │   │   ├── docker-compose.api.yaml
 │   │   └── docker-compose.data.yaml
 │   └── scripts/                   ← Dev & ops shell scripts
-│       ├── dev.sh                 ← Local backend hot-reload
+│       ├── dev.sh                 ← Local Python API hot-reload
 │       ├── run.sh                 ← Build + run Docker container
 │       ├── run-compose.sh         ← Full Compose stack with GPU/API flags
 │       └── run-ollama-docker.sh   ← Start Ollama in Docker
@@ -141,7 +141,7 @@ open-tutor-ai-CE/
 │
 ├── docs/                          ← Documentation
 ├── kubernetes/                    ← Helm charts (in progress)
-├── .github/workflows/             ← CI/CD (backend format, frontend build, release)
+├── .github/workflows/             ← CI/CD (Python app format, frontend build, release)
 ├── requirements.txt
 ├── pyproject.toml
 ├── Makefile
@@ -165,14 +165,19 @@ open-tutor-ai-CE/
 Routes are grouped by domain. All versioned routes are under `/api/v1/*`. Auth is mounted
 at two prefixes to match the UI's `TUTOR_BASE_URL` / `TUTOR_API_BASE_URL` split.
 
+The public route names intentionally keep OpenTutorAI's UI contract (`auths`, `chats`,
+`models`, `providers`, `self_regulation`, `knowledge`, `audio`, `images`). Internal
+packages use professional domain names: `accounts`, `learning`, `ai`, `content`,
+`governance`, `system`, `gateway`, `data`, `common`, and `config`.
+
 | Domain | Routes | Notes |
 |--------|--------|-------|
 | `health` | `GET /health` | No version prefix. Docker healthcheck. |
-| `access (auths)` | `POST /auths/signup`, `GET /auths/user-count` | Root mount — `TUTOR_BASE_URL` |
-| `access (auths)` | `POST /api/v1/auths/signin`, `GET /api/v1/auths/`, `GET /api/v1/auths/signout` | `/api/v1` mount |
-| `platform` | `GET /api/v1/platform/version\|changelog\|banners` | Version, changelog, UI banners |
+| `accounts (auths)` | `POST /auths/signup`, `GET /auths/user-count` | Root mount — `TUTOR_BASE_URL` |
+| `accounts (auths)` | `POST /api/v1/auths/signin`, `GET /api/v1/auths/`, `GET /api/v1/auths/signout` | `/api/v1` mount |
+| `app_info` | `GET /api/v1/platform/version\|changelog\|banners` | Public route kept for UI contract; no root `platform/` package |
 | `users` | `GET /api/v1/users/`, `GET/POST /api/v1/users/user/settings\|info`, `POST /api/v1/users/update/role`, `GET/POST/{id} DELETE/{id}` | User management (admin-gated list/role/delete) |
-| `foundation/configs` | `GET/POST /api/v1/configs/models\|banners\|suggestions\|...`, `GET /api/v1/configs/export`, `POST /api/v1/configs/import` | App-level KV config (writes admin-gated) |
+| `system/configs` | `GET/POST /api/v1/configs/models\|banners\|suggestions\|...`, `GET /api/v1/configs/export`, `POST /api/v1/configs/import` | App-level KV config (writes admin-gated) |
 | `ai/model_catalog` | `GET /api/v1/models/`, `POST /api/v1/models/create`, `GET/POST/DELETE /api/v1/models/model?id=`, `POST /api/v1/models/model/toggle` | Model overlays (ownership-gated mutations) |
 | `ai/providers (OpenAI)` | `GET/POST /api/v1/providers/openai/config\|urls\|keys\|verify`, `GET /api/v1/providers/openai/models[/{idx}]`, `POST /api/v1/providers/openai/chat/completions`, `POST /api/v1/providers/openai/audio/speech` | Hermes-style core; model-list TTL cache; admin config, non-admin proxy |
 | `ai/providers (Ollama)` | `GET/POST /api/v1/providers/ollama/config\|urls\|verify`, `GET /api/v1/providers/ollama/api/version[/{idx}]`, `GET /api/v1/providers/ollama/api/tags[/{idx}]`, `POST /api/v1/providers/ollama/api/generate\|embeddings\|chat`, `POST/DELETE /api/v1/providers/ollama/api/pull\|create\|delete[/{idx}]`, `POST /api/v1/providers/ollama/models/download\|upload[/{idx}]` | Native Ollama adapter isolated; model-mgmt admin-only |
@@ -180,6 +185,8 @@ at two prefixes to match the UI's `TUTOR_BASE_URL` / `TUTOR_API_BASE_URL` split.
 | `learning/supports` | `POST /api/v1/supports/create`, `POST /api/v1/supports/upload-file`, `GET /api/v1/supports/list[?status=]`, `GET/PATCH/DELETE /api/v1/supports/{id}`, `PATCH /api/v1/supports/{id}/update-chat` | Tutoring support requests |
 | `governance/self_regulation` | `GET/POST /api/v1/self_regulation/config\|feedback`, `GET /api/v1/self_regulation/feedbacks/all[/export]`, `GET/DELETE /api/v1/self_regulation/feedback/{id}` | HITL evaluation of LLM responses |
 | `content/files` | `POST /api/v1/files/`, `GET /api/v1/files/`, `GET /api/v1/files/all`, `GET/DELETE /api/v1/files/{id}`, `GET /api/v1/files/{id}/content` | Owned file upload |
+| `ai/retrieval/knowledge` | `GET/POST/DELETE /api/v1/knowledge/*` | Knowledge bases used by RAG |
+| `ai/media` | `GET/POST /api/v1/audio/*`, `GET/POST /api/v1/images/*` | AI audio and image capabilities |
 | `realtime` | Socket.IO ASGI sub-app at `/realtime/socket.io` | JWT auth on connect; replaces `/ws/socket.io` |
 
 **Removed (forbidden namespaces):**
@@ -247,7 +254,7 @@ python main.py
 - [x] Extract configuration to root-level `config/` module
 - [x] Create independent database models (User, Support, Feedback)
 - [x] Implement repository pattern for data access
-- [x] Create domain services (AccessService, SupportsService, SelfRegulationService)
+- [x] Create domain services (AccountService, SupportsService, SelfRegulationService)
 - [x] Create HTTP gateway with dependency injection
 - [x] Implement JWT authentication (replace open_webui auth)
 - [x] Create API routers for each domain
@@ -259,7 +266,7 @@ python main.py
 - [x] Socket.IO ASGI sub-mount at /realtime/socket.io
 - [x] Repoint UI base-URL constants to /api/v1/providers/* and /realtime/socket.io
 - [x] Replace hardcoded contract test with UI-scanner (test_contract_coverage.py)
-- [x] Reorganize root domains into `access/`, `learning/`, `ai/`, `content/`, `governance/`, and `foundation/`
+- [x] Reorganize root domains into `accounts/`, `learning/`, `ai/`, `content/`, `governance/`, and `system/`
 
 ## Current Status
 
@@ -268,9 +275,9 @@ The root-driven structure is complete and fully operational:
 - **210 tests passing** across all domains (auth, users, configs, models, providers, chats, realtime, files, supports, self_regulation)
 - All provider endpoints implemented — Hermes-style unified proxy core matching the full UI contract (~25 endpoints per provider)
 - Socket.IO realtime layer mounted at `/realtime/socket.io`; UI repointed
-- Contract test dynamically scans `ui/src/lib/apis/**/*.ts` to verify backend coverage; no hardcoded paths
+- Contract test dynamically scans `ui/src/lib/apis/**/*.ts` to verify API coverage; no hardcoded paths
 - Service/repository separation applied throughout — routers contain no ORM access
-- Internal package names now separate gateway, access, learning, AI, content, governance, foundation, media, data, UI, and devops concerns
+- Internal package names now separate gateway, accounts, learning, AI, content, governance, system, data, UI, and devops concerns
 - Single Docker image (multi-stage: Node build → Python serve)
 - Runtime data isolated to `var/` (gitignored)
 
@@ -279,7 +286,7 @@ The root-driven structure is complete and fully operational:
 The architecture follows the Hermes pattern intentionally:
 
 1. **Agent Framework** — add `ai/agents/` when the agentic phase begins
-2. **LLM Integration** — `ai/providers/proxy.py` unified transport is the foundation; add multi-provider routing via `ProviderProfile.transport` field
+2. **LLM Integration** — `ai/providers/proxy.py` unified transport is the base; add multi-provider routing via `ProviderProfile.transport` field
 3. **Provider Registry** — `ai/providers/profiles.py` ready to add new providers (one dict entry each)
 4. **Vector Storage** — `var/vector_db/` runtime path; `ai/retrieval/` wraps retrieval behavior
 5. **MCP / Tool Use** — extend the reserved `ai/tools/` domain following Hermes techniques
@@ -299,7 +306,7 @@ If upgrading from previous OpenTutorAI installation:
 2. **Database**: Default to SQLite instead of PostgreSQL (configurable)
 3. **Feedback naming**: "response_feedbacks" → "self_regulation" for domain clarity
 4. **UI serving**: `gateway.http.app` mounts `ui/build/` as a SPA via `SPAStaticFiles` when the
-   directory exists (production/Docker). In local dev the build is absent and the backend serves
+   directory exists (production/Docker). In local dev the build is absent and the Python app serves
    API only; the SvelteKit dev server runs independently on port 5173.
 
 ## Support

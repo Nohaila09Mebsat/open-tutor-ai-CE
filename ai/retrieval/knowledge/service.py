@@ -1,10 +1,10 @@
-"""Knowledge base business logic."""
+"""Knowledge base logic for retrieval-augmented generation."""
 
 import uuid
 from typing import Any, Dict, List
 from sqlalchemy.orm import Session
 from common.exceptions import NotFoundError
-from content.knowledge.repository import KnowledgeRepository
+from ai.retrieval.knowledge.repository import KnowledgeRepository
 
 
 class KnowledgeService:
