@@ -9,7 +9,7 @@ on:
     branches:
       - main
       - dev
-      
+
 permissions:
   contents: read
   statuses: write
@@ -18,6 +18,9 @@ jobs:
   build:
     name: 'Format & Build Frontend'
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ui
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
@@ -25,7 +28,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '22' # Or specify any other version you want to use
+          node-version: '22'
 
       - name: Install Dependencies
         run: npm install
@@ -41,12 +44,15 @@ jobs:
 
       - name: Build Frontend
         env:
-          NODE_OPTIONS: --max-old-space-size=4096 # Increase to 4 GB
+          NODE_OPTIONS: --max-old-space-size=4096
         run: npm run build
 
   test-frontend:
     name: 'Frontend Unit Tests'
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ui
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
@@ -61,6 +67,6 @@ jobs:
 
       - name: Build SvelteKit (required before tests)
         run: npm run build
-        
+
       - name: Run vitest
         run: npm run test:frontend
